@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tapper Game</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Telegram WebApp Script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* Use a custom font and ensure the app feels native */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--tg-theme-text-color, #ffffff);
+            background: var(--tg-theme-bg-color, #212121);
+            overscroll-behavior-y: none; /* Prevents pull-to-refresh */
+        }
+        .tap-area {
+            /* Create a nice, pressable button effect */
+            transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+            user-select: none; /* Prevents text selection on rapid tapping */
+            -webkit-user-select: none; /* For Safari */
+        }
+        .tap-area:active {
+            transform: scale(0.95);
+            box-shadow: 0 0 20px rgba(0, 191, 255, 0.5); /* Glowing effect on tap */
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between h-screen m-0 p-4 overflow-hidden">
+
+    <!-- Header Section -->
+    <div id="user-info" class="text-center w-full">
+        <p class="text-lg">Welcome, <span id="username" class="font-bold">Player</span>!</p>
+    </div>
+
+    <!-- Main Content: Score and Tap Area -->
+    <div class="flex flex-col items-center justify-center flex-grow w-full">
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-semibold">Your Score</h1>
+            <p id="score-display" class="text-7xl font-black tracking-tighter">0</p>
+        </div>
+
+        <div id="tap-area" class="tap-area w-64 h-64 md:w-80 md:h-80 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg select-none">
+            <p class="text-white text-4xl font-bold">TAP!</p>
+        </div>
+    </div>
+
+    <!-- Footer Section -->
+    <div class="text-center w-full text-xs text-gray-400">
+        <p>Powered by Telegram Mini Apps</p>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const tapArea = document.getElementById('tap-area');
+        const scoreDisplay = document.getElementById('score-display');
+        const usernameDisplay = document.getElementById('username');
+        const userInfoContainer = document.getElementById('user-info');
+
+        // --- Game State ---
+        let score = 0;
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // This ensures the Telegram Web App script is ready
+            window.Telegram.WebApp.ready();
+            
+            // Customize the appearance based on Telegram theme
+            document.body.style.color = window.Telegram.WebApp.themeParams.text_color || '#ffffff';
+            document.body.style.backgroundColor = window.Telegram.WebApp.themeParams.bg_color || '#212121';
+
+            // Get user data from Telegram
+            const user = window.Telegram.WebApp.initDataUnsafe?.user;
+
+            if (user) {
+                // Display user's first name if available, otherwise 'Player'
+                usernameDisplay.textContent = user.first_name || 'Player';
+            } else {
+                // Hide user info if it can't be fetched (e.g., when opened in a normal browser)
+                userInfoContainer.style.display = 'none';
+                console.warn("Could not retrieve user data. Are you running this outside of Telegram?");
+            }
+
+            // Make the app full height
+            window.Telegram.WebApp.expand();
+        });
+
+        // --- Event Listeners ---
+        // Listen for both touch and mouse clicks for wide compatibility
+        tapArea.addEventListener('click', handleTap);
+        tapArea.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevents "ghost" clicks on mobile
+            handleTap();
+        }, { passive: false });
+
+
+        // --- Functions ---
+        function handleTap() {
+            score++;
+            updateScore();
+            createFloatingNumber(event.clientX, event.clientY);
+
+            // Send haptic feedback if the device supports it
+            if (window.Telegram.WebApp.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            }
+        }
+
+        function updateScore() {
+            scoreDisplay.textContent = score;
+        }
+        
+        // Fun visual effect: show a floating "+1" on each tap
+        function createFloatingNumber(x, y) {
+            const number = document.createElement('div');
+            number.textContent = '+1';
+            number.style.position = 'absolute';
+            number.style.left = `${x - 10}px`; // Center the number on the tap position
+            number.style.top = `${y - 20}px`;
+            number.style.color = '#fff';
+            number.style.fontSize = '24px';
+            number.style.fontWeight = 'bold';
+            number.style.pointerEvents = 'none';
+            number.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+            number.style.textShadow = '0 0 5px rgba(0,0,0,0.5)';
+            
+            document.body.appendChild(number);
+
+            // Animate the number floating up and fading out
+            setTimeout(() => {
+                number.style.transform = 'translateY(-50px)';
+                number.style.opacity = '0';
+            }, 10);
+            
+            // Remove the element from the DOM after the animation
+            setTimeout(() => {
+                document.body.removeChild(number);
+            }, 510);
+        }
+
+    </script>
+</body>
+</html>
